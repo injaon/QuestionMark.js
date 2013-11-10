@@ -1,22 +1,18 @@
 /*
-    QuestionMark.js by Louis Lazaris
-    http://impressivewebs.github.io/QuestionMark.js/
-    License: http://creativecommons.org/licenses/by/2.0/, no credit needed.
-    This script should work everywhere, including IE8+.
-    If you want IE8 support, include the following 
-    polyfill for addEventListener() at the top:
-    https://gist.github.com/jonathantneal/2415137
-    (included in the repo as attachevent.js).
-    Doesn't work in IE6/7, but feel free to fork and fix.
-*/
+ * QuestionMark.js
+ * Fork from: http://impressivewebs.github.io/QuestionMark.js/ by Louis Lazaris
+ *
+ * This is an adaptation for Fidus Writer http://fiduswriter.org
+ * by Gabriel Lopez <gabriel.marcos.lopez@gmail.com>
+ * License: Creative Common 2.0
+ * http://creativecommons.org/licenses/by/2.0/
+ *
+ * Usage: $().showShortcuts()
+ */
 
-(function () {
-
-    'use strict';
-
-    function removeModal(helpUnderlay) {
-        helpUnderlay.className = helpUnderlay.className.replace(/help-isVisible*/g, '');
-        helpUnderlay.className = helpUnderlay.className.trim();
+$(document).ready(function() {
+    function removeModal($helpUnderlay) {
+        $helpUnderlay.removeClass("help-isVisible")
     }
 
     function getWindowWidth() {
@@ -70,19 +66,12 @@
         o.helpModal.style.height = o.maxHeight + 100 + 'px';
     }
 
-    function doWhichKey(e) {
-        e = e || window.event;
-        var charCode = e.keyCode || e.which;
-        //Line below not needed, but you can read the key with it
-        //var charStr = String.fromCharCode(charCode);
-        return charCode;
-    }
-
     // Primary function, called in checkServerResponse()
     function doQuestionMark() {
 
-        var helpUnderlay = document.getElementById('helpUnderlay'),
-            helpModal = document.getElementById('helpModal'),
+        var helpUnderlay = document.getElementById('helpUnderlay');
+        var $helpUnderlay = $("#helpUnderlay");
+        var helpModal = document.getElementById('helpModal'),
             helpClose = document.getElementById('helpClose'),
             timeOut = null,
             objDoSize = {
@@ -99,42 +88,33 @@
 
         doModalSize(objDoSize);
 
-        document.addEventListener('keypress', function (e) {
-
-            // 63 = '?' key
-            // '?' key toggles the modal
-            if (doWhichKey(e) === 63) {
-                classCol = document.getElementById('helpUnderlay').className;
-                if (classCol.indexOf('help-isVisible') === -1) {
-                    document.getElementById('helpUnderlay').className += ' help-isVisible';
-                }
-
+        $.fn.extend({
+            showShortcuts: function() {
+                $helpUnderlay.addClass("help-isVisible");
+                helpUnderlay.style.height = doUnderlayHeight() + 'px';
             }
+        });
 
-            helpUnderlay.style.height = doUnderlayHeight() + 'px';
+        // this prevents click on modal from removing the modal
+        $(helpModal).click(function (evnt) {
+            evnt.stopPropagation();
+        });
 
-        }, false);
-
-        document.addEventListener('keyup', function (e) {
-            // 27 = ESC key
-            if (doWhichKey(e) === 27) {
-                removeModal(helpUnderlay);
+        // Modal is removed if ESC is pressed
+        $(document).keyup(function(evnt) {
+            if(evnt.which == 27) { // ESC
+                removeModal($helpUnderlay);
             }
-        }, false);
+        });
 
         // Modal is removed if the background is clicked
         helpUnderlay.addEventListener('click', function () {
-            removeModal(helpUnderlay);
-        }, false);
-
-        // this prevents click on modal from removing the modal
-        helpModal.addEventListener('click', function (e) {
-            e.stopPropagation();
+            removeModal($helpUnderlay);
         }, false);
 
         // the close button
         helpClose.addEventListener('click', function () {
-            removeModal(helpUnderlay);
+            removeModal($helpUnderlay);
         }, false);
 
         // If the window is resized, the doModalSize() function is called again.
@@ -148,70 +128,11 @@
                 doModalSize(objDoSize);
             }, 100);
         };
-
     }
 
     // All the Ajax stuff is below.
-    // Probably no reason to touch this unless you can optimize it.
-    function getXhrObject() {
-        var xhrObject = false;
-        // All browsers (except IE6) use the 3 lines below
-        if (window.XMLHttpRequest) {
-            xhrObject = new XMLHttpRequest();
-        }
-        // If you need IE6 support, uncomment the following else/if:
-        /*else if (window.ActiveXObject) {
-            try {
-                    xhrObject = new ActiveXObject("Msxml2.XMLHTTP");
-                } catch(err) {
-                    try {
-                        xhrObject = new ActiveXObject("Microsoft.XMLHTTP");
-                    } catch(err) {
-                        xhrObject = false;
-                    }
-            }
-        }*/
-        return xhrObject;
-    }
-
-    function insertHelp(respText, callback) {
-        // Opera kept inserting the content multiple times
-        // so I added a check to insert it just once... bug??
-        if (!document.getElementById('helpUnderlay')) {
-            document.getElementsByTagName('body')[0].innerHTML += respText;
-            callback();
-        }
-    }
-
-    function checkServerResponse(ajaxCapable) {
-        if (ajaxCapable.readyState === 4) {
-            if (ajaxCapable.status === 200 || ajaxCapable.status === 304) {
-                var respText = ajaxCapable.responseText;
-                // here's where the help modal is inserted
-                insertHelp(respText, function () {
-                    doQuestionMark();
-                });
-            }
-        }
-    }
-
-    function doAjax() {
-        var ajaxCapable = getXhrObject();
-        if (ajaxCapable) {
-            ajaxCapable.onreadystatechange = function () {
-                checkServerResponse(ajaxCapable);
-            };
-            ajaxCapable.open("POST", "question.mark.html", true);
-            ajaxCapable.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-            ajaxCapable.send(null);
-        } else {
-            // Browser does not support ajax
-            document.getElementsByTagName('body')[0].innerHTML += 'Error: Your browser does not support Ajax';
-        }
-    }
-
-    // This fires all the Ajax stuff, and, in turn,
-    // the primary function for the modal.
-    doAjax();
-
-}());
+    $.get("question.mark.html", function(data) {
+        $("body").append(data);
+        doQuestionMark();
+    });
+});
